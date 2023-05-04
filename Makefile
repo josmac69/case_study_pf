@@ -1,11 +1,16 @@
-.PHONY: start-production \
+.PHONY: create-env \
+	start-production \
 	stop-all \
 	pg-env \
 	open-psql \
 	show-statistics \
 	show-latest-10
 
-start-production:
+create-env:
+	mkdir -p jupyter/notebooks
+	touch jupyter/notebooks/.gitkeep
+
+start-production: create-env
 	docker compose up --build
 
 stop-all:
@@ -51,3 +56,20 @@ show-latest-10: pg-env
 		from srcdata \
 		where rownum <= 10 \
 		order by device_id, time desc;"
+
+JUPYTER_IMAGE = "myjupyter:latest"
+
+build-jupyter-image:
+	cd jupyter/image/ && \
+	docker build --progress=plain --no-cache -t "$(JUPYTER_IMAGE)" -f Dockerfile . && \
+	cd ../../
+
+run-jupyter:
+	docker run -i -t \
+	-v ${PWD}/jupyter/notebooks:/opt/notebooks \
+	-p 8888:8888 \
+	"$(JUPYTER_IMAGE)" /bin/bash \
+	-c "/opt/conda/bin/conda install jupyter -y --quiet && \
+	/opt/conda/bin/jupyter notebook \
+	--notebook-dir=/opt/notebooks --ip='*' --port=8888 \
+	--no-browser --allow-root"
