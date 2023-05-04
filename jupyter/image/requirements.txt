@@ -1,5 +1,8 @@
 pandas
 matplotlib
 seaborn
+sqlalchemy
+mplleaflet
+folium
 psycopg2-binary
 psycopg2

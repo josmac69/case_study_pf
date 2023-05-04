@@ -1,9 +1,16 @@
 version: '3.8'
 
+networks:
+  case_study_pf:
+    name: case_study_pf
+    driver: bridge
+
 services:
   mysql_db:
     image: "mysql:8.0.27"  # we have the same version of mysql in the prod
     container_name: mysql56-container
+    networks:
+      - case_study_pf
     environment:
       MYSQL_ROOT_USER: root
       MYSQL_ROOT_PASSWORD: root
@@ -14,6 +21,8 @@ services:
   psql_db:
     image: "postgres:9.5.15"
     container_name: psql-container
+    networks:
+      - case_study_pf
     environment:
       POSTGRES_ROOT_USER: root
       POSTGRES_ROOT_PASSWORD: root
@@ -24,6 +33,8 @@ services:
   main:
     build:
       context: main
+    networks:
+      - case_study_pf
     environment:
       POSTGRESQL_CS: 'postgresql+psycopg2://postgres:password@psql_db:5432/main'
     depends_on:
@@ -33,6 +44,8 @@ services:
   analytics:
     build:
       context: analytics
+    networks:
+      - case_study_pf
     environment:
       POSTGRESQL_CS: 'postgresql+psycopg2://postgres:password@psql_db:5432/main'
       MYSQL_CS: 'mysql+pymysql://nonroot:nonroot@mysql_db/analytics?charset=utf8'

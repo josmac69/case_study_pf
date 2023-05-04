@@ -3,12 +3,17 @@
 	stop-all \
 	pg-env \
 	open-psql \
-	show-statistics \
+	show-stats-per-hour \
+	show-stats-per-1min \
 	show-latest-10
+
+JUPYTER_IMAGE = "myjupyter:latest"
+NETWORK_NAME = "case_study_pf"
 
 create-env:
 	mkdir -p jupyter/notebooks
 	touch jupyter/notebooks/.gitkeep
+	docker network inspect $(NETWORK_NAME) >/dev/null 2>&1 || docker network create $(NETWORK_NAME)
 
 start-production: create-env
 	docker compose up --build
@@ -25,12 +30,29 @@ pg-env:
 	-c "CREATE EXTENSION IF NOT EXISTS cube; \
 	CREATE EXTENSION IF NOT EXISTS earthdistance;"
 
-show-statistics: pg-env
+show-stats-per-hour: pg-env
 	docker exec -it psql-container \
 	psql -U postgres -d main \
-	-c "with srcdata as (
-		select device_id, min(temperature) as mintemp, max(temperature) as maxtemp, \
-		count(*) as datapointscount from public.devices group by device_id;"
+	-c "select device_id, \
+		date_trunc('hour', to_timestamp(time::bigint)) as date_hour, \
+		min(temperature) as mintemp, \
+		max(temperature) as maxtemp, \
+		count(*) as datapointscount \
+		from public.devices \
+		group by device_id, date_hour \
+		order by device_id, date_hour;"
+
+show-stats-per-1min: pg-env
+	docker exec -it psql-container \
+	psql -U postgres -d main \
+	-c "select device_id, \
+		date_trunc('minute', to_timestamp(time::bigint)) as date_1min, \
+		min(temperature) as mintemp, \
+		max(temperature) as maxtemp, \
+		count(*) as datapointscount \
+		from public.devices \
+		group by device_id, date_1min \
+		order by device_id, date_1min;"
 
 show-latest-10: pg-env
 	docker exec -it psql-container \
@@ -57,17 +79,16 @@ show-latest-10: pg-env
 		where rownum <= 10 \
 		order by device_id, time desc;"
 
-JUPYTER_IMAGE = "myjupyter:latest"
-
 build-jupyter-image:
 	cd jupyter/image/ && \
 	docker build --progress=plain --no-cache -t "$(JUPYTER_IMAGE)" -f Dockerfile . && \
 	cd ../../
 
-run-jupyter:
+run-jupyter: create-env
 	docker run -i -t \
 	-v ${PWD}/jupyter/notebooks:/opt/notebooks \
 	-p 8888:8888 \
+	--network $(NETWORK_NAME) \
 	"$(JUPYTER_IMAGE)" /bin/bash \
 	-c "/opt/conda/bin/conda install jupyter -y --quiet && \
 	/opt/conda/bin/jupyter notebook \
