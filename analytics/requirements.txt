@@ -1,0 +1,7 @@
+pandas
+sqlalchemy
+geopy
+psycopg2
+pymysql
+cryptography
+uuid

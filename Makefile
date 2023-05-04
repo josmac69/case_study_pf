@@ -4,10 +4,16 @@
 	pg-env \
 	open-psql \
 	show-stats-per-hour \
-	show-latest-10
+	show-latest-10 \
+	build-jupyter-image \
+	run-jupyter \
+	open-mysql \
+	build-analytics \
+	run-analytics
 
 JUPYTER_IMAGE = "myjupyter:latest"
 NETWORK_NAME = "case_study_pf"
+ANALYTICS_IMAGE = "case_study_pf_analytics"
 
 create-env:
 	mkdir -p jupyter/notebooks
@@ -125,3 +131,17 @@ run-jupyter: create-env
 	/opt/conda/bin/jupyter notebook \
 	--notebook-dir=/opt/notebooks --ip='*' --port=8888 \
 	--no-browser --allow-root"
+
+build-analytics: create-env
+	cd analytics/ && \
+	docker build --progress=plain --no-cache -t "$(ANALYTICS_IMAGE)" -f Dockerfile . && \
+	cd ../
+
+run-analytics: create-env
+	docker run -i -t \
+	--network $(NETWORK_NAME) \
+	-v ${PWD}/analytics:/app \
+	-e POSTGRESQL_CS='postgresql+psycopg2://postgres:password@psql_db:5432/main' \
+    -e MYSQL_CS='mysql+pymysql://nonroot:nonroot@mysql_db/analytics?charset=utf8' \
+	"$(ANALYTICS_IMAGE)" /bin/bash \
+	-c "python3 /app/analytics.py"
