@@ -4,7 +4,6 @@
 	pg-env \
 	open-psql \
 	show-stats-per-hour \
-	show-stats-per-1min \
 	show-latest-10
 
 JUPYTER_IMAGE = "myjupyter:latest"
@@ -24,6 +23,9 @@ stop-all:
 open-psql:
 	docker exec -it psql-container psql -U postgres -d main
 
+open-mysql:
+	docker exec -it mysql56-container mysql -u root -proot analytics
+
 pg-env:
 	docker exec -it psql-container \
 	psql -U postgres -d main \
@@ -33,33 +35,62 @@ pg-env:
 show-stats-per-hour: pg-env
 	docker exec -it psql-container \
 	psql -U postgres -d main \
-	-c "select device_id, \
-		date_trunc('hour', to_timestamp(time::bigint)) as date_hour, \
-		min(temperature) as mintemp, \
-		max(temperature) as maxtemp, \
+	-c "with srcdata as ( \
+			select device_id, \
+			temperature, \
+			json_extract_path_text(location::json, 'latitude') as latitude, \
+			json_extract_path_text(location::json, 'longitude') as longitude, \
+			json_extract_path_text( (lag(location) over w)::json, 'latitude') as prev_latitude, \
+			json_extract_path_text( (lag(location) over w)::json, 'longitude') as prev_longitude, \
+			time, \
+			date_trunc('hour', to_timestamp(time::bigint)) as date_hour, \
+			date_trunc('minute', to_timestamp(time::bigint)) as date_1min \
+			from public.devices \
+			window w as (partition by device_id order by time) ), \
+		calcdist as ( \
+			select device_id, \
+			time, \
+			date_hour, \
+			date_1min, \
+			temperature, \
+			( acos(sin(latitude::float) * sin(prev_latitude::float) + \
+			cos(latitude::float) * cos(prev_latitude::float) * \
+			cos(prev_longitude::float - longitude::float)) * 6371 ) \
+			AS distance_from_previous_km \
+			from srcdata ) \
+		select device_id, date_hour, min(temperature) as min_temperature, \
+		max(temperature) as max_temperature, \
+		round(sum(distance_from_previous_km)::numeric,2) as total_distance_km, \
 		count(*) as datapointscount \
-		from public.devices \
+		from calcdist \
 		group by device_id, date_hour \
 		order by device_id, date_hour;"
 
-show-stats-per-1min: pg-env
-	docker exec -it psql-container \
-	psql -U postgres -d main \
-	-c "select device_id, \
-		date_trunc('minute', to_timestamp(time::bigint)) as date_1min, \
-		min(temperature) as mintemp, \
-		max(temperature) as maxtemp, \
-		count(*) as datapointscount \
-		from public.devices \
-		group by device_id, date_1min \
-		order by device_id, date_1min;"
-
 show-latest-10: pg-env
-	docker exec -it psql-container \
-	psql -U postgres -d main \
-	-c "with srcdata as ( \
+	docker exec -it psql-container \with srcdata as ( \
 		select * from ( \
-		select device_id, temperature, \
+		select device_id, \
+		temperature, \
+		location, \
+		json_extract_path_text(location::json, 'latitude') as latitude, \
+		json_extract_path_text(location::json, 'longitude') as longitude, \
+		lag(location) over w as prev_location, \
+		json_extract_path_text( (lag(location) over w)::json, 'latitude') as prev_latitude, \
+		json_extract_path_text( (lag(location) over w)::json, 'longitude') as prev_longitude, \
+		time, \
+		row_number() over (partition by device_id order by time desc) as rownum \
+		from public.devices \
+		window w as (partition by device_id order by time) ) a ) \
+		select device_id, time, location, prev_location, \
+		( acos(sin(latitude::float) * sin(prev_latitude::float) + \
+		cos(latitude::float) * cos(prev_latitude::float) * \
+		cos(prev_longitude::float - longitude::float)) * 6371 ) \
+		AS distance_from_previous \
+		from srcdata \
+		where rownum <= 10 \
+		order by device_id, time desc;
+		select device_id, \
+		temperature, \
 		location, \
 		json_extract_path_text(location::json, 'latitude') as latitude, \
 		json_extract_path_text(location::json, 'longitude') as longitude, \

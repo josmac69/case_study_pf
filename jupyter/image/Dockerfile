@@ -7,9 +7,11 @@ WORKDIR /app
 # Copy the requirements.txt file to the container
 COPY requirements.txt .
 
-# Install the required libraries using conda
+# Install the required libraries
 # based on: https://www.technologyscout.net/2017/11/how-to-install-dependencies-from-a-requirements-txt-file-with-conda/
-RUN while read requirement; do echo "installing $requirement"; conda install --yes $requirement; done < requirements.txt
+RUN apt-get update && \
+    apt-get install -y libpq-dev gcc && \
+    pip install --verbose -r /app/requirements.txt
 
 # Start Jupyter notebook
 CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--allow-root"]
