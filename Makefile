@@ -1,15 +1,4 @@
-.PHONY: create-env \
-	start-production \
-	stop-all \
-	pg-env \
-	open-psql \
-	show-stats-per-hour \
-	show-latest-10 \
-	build-jupyter-image \
-	run-jupyter \
-	open-mysql \
-	build-analytics \
-	run-analytics
+# main Makefile for the project
 
 JUPYTER_IMAGE = "myjupyter:latest"
 NETWORK_NAME = "case_study_pf"
@@ -20,21 +9,34 @@ POSTGRESQL_USER = "postgres"
 POSTGRESQL_PASSWORD = "password"
 POSTGRESQL_DATABASE = "main"
 
+init:
+	@echo "Initializing the project"
+	docker compose -f docker-compose.airflow.yaml up airflow-init
+
 create-env:
+	mkdir -p ./dags ./plugins ./logs ./data
+	chmod -R 777 ./dags ./plugins ./logs ./data
 	mkdir -p jupyter/notebooks
 	touch jupyter/notebooks/.gitkeep
 	docker network inspect $(NETWORK_NAME) >/dev/null 2>&1 || docker network create $(NETWORK_NAME)
 
-start-production: create-env
-	docker compose up --build
+start-dbs: create-env
+	docker compose -f docker-compose.dbs.yaml up --build
+
+start-airflow: create-env
+	docker compose -f docker-compose.airflow.yaml up --build
+
+start-all: start-dbs start-airflow
 
 stop-all:
-	docker compose down
+	docker compose -f docker-compose.airflow.yaml down --remove-orphans
+	docker compose -f docker-compose.dbs.yaml down --remove-orphans
 
 open-psql:
 	docker exec -it \
 	$(POSTGRESQL_CONTAINER) \
-	psql -U $(POSTGRESQL_USER) -d $(POSTGRESQL_DATABASE)
+	psql -U $(POSTGRESQL_USER) \
+	-d $(POSTGRESQL_DATABASE)
 
 open-mysql:
 	docker exec -it \
@@ -95,3 +97,18 @@ run-analytics: create-env
     -e MYSQL_CS='mysql+pymysql://nonroot:nonroot@mysql_db/analytics?charset=utf8' \
 	"$(ANALYTICS_IMAGE)" /bin/bash \
 	-c "python3 /app/analytics.py"
+
+.PHONY: create-env \
+	start-dbs \
+	start-airflow \
+	start-all \
+	stop-all \
+	pg-env \
+	open-psql \
+	show-stats-per-hour \
+	show-latest-10 \
+	build-jupyter-image \
+	run-jupyter \
+	open-mysql \
+	build-analytics \
+	run-analytics
