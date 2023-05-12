@@ -5,15 +5,7 @@
 
 ## Assignment:
 
-### Environment:
-To get started run ``` docker-compose up ``` in root directory.
-It will create the PostgresSQL database and start generating the data.
-It will create an empty MySQL database.
-It will launch the analytics.py script.
-
-### Task:
-
-#### Data Generator for the Task
+### Data Generator for the Task
 We have provided a data simulator. The simulator writes 3 records per second into a table in PostgresSQL called devices. The structure of the table is the following:
 | Property Name | Data Type | Comment |
 | --- | --- | --- |
@@ -38,15 +30,7 @@ relevant python/postgresql package:
 * For assistance with this task, you may find this link helpful: [GeoPy module](https://geopy.readthedocs.io/en/stable/#module-geopy.distance)
 * This ETL should live inside the provided docker container and run by the docker-compose command.
 
-#### Submission Guidelines:
-Submit your project (without binaries) along with a screenshot showing successful running in a public git repository. We assume that this task should take 1-2 hours, not more. We will also pay attention to your coding style, so make sure your solution is written in a concise and clear manner. You have 5 days to complete the task and return the link to your git repository. We will check that no commit to the repository was made after the deadline.
-If you have any questions about the task, do not hesitate to reach out to us.
-
-Your task will be to write the ETL script inside the analytics/analytics.py file.
-
 ## Solution:
-This is a very interesting task and I decided to do more than just a simple ETL script.
-
 The whole solution is managed using make commands. There are following targets available in the Makefile:
 * `make init` - initializes the environment for airflow
 * `make start-all` - starts the whole environment
