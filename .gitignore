@@ -1,1 +1,3 @@
 logs/
+mysql_data/
+pg_data/

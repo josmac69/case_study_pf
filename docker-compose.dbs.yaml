@@ -7,10 +7,12 @@ networks:
 
 services:
   mysql_db:
-    image: "mysql:8.0.27"  # we have the same version of mysql in the prod
-    container_name: mysql56-container
+    image: "mysql:latest"  # we have the same version of mysql in the prod
+    container_name: mysql-container
     networks:
       - case_study_pf
+    volumes:
+      - ./mysql_data:/var/lib/mysql
     environment:
       MYSQL_ROOT_USER: root
       MYSQL_ROOT_PASSWORD: root
@@ -19,18 +21,19 @@ services:
       MYSQL_PASSWORD: nonroot
 
   psql_db:
-    image: "postgres:9.5.15"
+    image: "postgres:latest"
     container_name: psql-container
     networks:
       - case_study_pf
+    volumes:
+      - ./pg_data:/var/lib/postgresql/data
+      - ./sql:/sql
     environment:
       POSTGRES_ROOT_USER: root
       POSTGRES_ROOT_PASSWORD: root
       POSTGRES_DB: main
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-    volumes:
-      - ./sql:/sql
 
   main:
     build:
@@ -51,7 +54,6 @@ services:
   #   environment:
   #     POSTGRESQL_CS: 'postgresql+psycopg2://postgres:password@psql_db:5432/main'
   #     MYSQL_CS: 'mysql+pymysql://nonroot:nonroot@mysql_db/analytics?charset=utf8'
-
   #   depends_on:
   #     - mysql_db
   #     - psql_db

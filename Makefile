@@ -14,8 +14,12 @@ init:
 	docker compose -f docker-compose.airflow.yaml up airflow-init
 
 create-env:
-	mkdir -p ./dags ./plugins ./logs ./data
-	chmod -R 777 ./dags ./plugins ./logs ./data
+	@if [ ! -d "./dags" ]; then mkdir -p ./dags && chmod -R 777 ./dags; fi
+	@if [ ! -d "./plugins" ]; then mkdir -p ./plugins && chmod -R 777 ./plugins; fi
+	@if [ ! -d "./logs" ]; then mkdir -p ./logs && chmod -R 777 ./logs; fi
+	@if [ ! -d "./data" ]; then mkdir -p ./data && chmod -R 777 ./data; fi
+	@if [ ! -d "./mysql_data" ]; then mkdir -p ./mysql_data && chmod 777 ./mysql_data 2>/dev/null || true; fi
+	@if [ ! -d "./pg_data" ]; then mkdir -p ./pg_data && chmod 777 ./pg_data 2>/dev/null || true; fi
 	mkdir -p jupyter/notebooks
 	touch jupyter/notebooks/.gitkeep
 	docker network inspect $(NETWORK_NAME) >/dev/null 2>&1 || docker network create $(NETWORK_NAME)
@@ -37,6 +41,11 @@ open-psql:
 	$(POSTGRESQL_CONTAINER) \
 	psql -U $(POSTGRESQL_USER) \
 	-d $(POSTGRESQL_DATABASE)
+
+open-pg-bash:
+	docker exec -it \
+	$(POSTGRESQL_CONTAINER) \
+	/bin/bash
 
 open-mysql:
 	docker exec -it \
@@ -105,6 +114,7 @@ run-analytics: create-env
 	stop-all \
 	pg-env \
 	open-psql \
+	open-pg-bash \
 	show-stats-per-hour \
 	show-latest-10 \
 	build-jupyter-image \

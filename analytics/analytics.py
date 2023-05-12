@@ -11,9 +11,10 @@ from geopy.distance import great_circle
 import uuid
 
 print('Waiting for the data generator...')
-#sleep(20)
+sleep(20)
 print('ETL Starting...')
 
+# Create a connection to the PostgreSQL and MySQL databases
 while True:
     try:
         pg_engine = create_engine(environ["POSTGRESQL_CS"], pool_pre_ping=True, pool_size=10)
@@ -29,8 +30,6 @@ while True:
     except OperationalError:
         sleep(0.1)
 print('Connection to MySQL successful.')
-
-# Write the solution here
 
 # Create a session for each database
 pg_session = sessionmaker(bind=pg_engine)()

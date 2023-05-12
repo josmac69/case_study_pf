@@ -1,6 +1,8 @@
 # Case study
 
-* Case study for interview in the company P.F. Hiring process for Data Engineer position was unsuccessful. Turned out they had "something different in mind" which unfortunately they did not specify in our communication.
+_Warning - code is currently in development. It is not yet finished._
+
+* Case study for interview in the company P.F. Hiring process for Data Engineer position was unsuccessful because they had "something different in mind" which unfortunately they did not specify in our communication.
 * However the case study is very interesting therefore I decided to enhance it further by adding airflow, jupyter notebooks, SQL data analysis and basic dashboards to the solution. Creating this way full data pipeline from data generation to data analysis and visualization.
 
 ## Assignment:
